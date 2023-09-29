@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chat-api
+  template:
+    metadata:
+      labels:
+        app: chat-api
+    spec:
+      containers:
+        - name: chat-api
+          image: ifont/chat-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: secret-key
+            - name: DB_PATH
+              value: "/var/data/chat-api/mydatabase.db"
+          volumeMounts:
+            - name: sqlite-persistent-storage
+              mountPath: /var/data/chat-api
+      volumes:
+        - name: sqlite-persistent-storage
+          persistentVolumeClaim:
+            claimName: sqlite-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-api-service
+spec:
+  selector:
+    app: chat-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: NodePort
